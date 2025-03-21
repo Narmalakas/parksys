@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Title</title>
+</head>
+<body>
+{% extends 'base.html' %}
+{% block content %}
+<h2>Receipt</h2>
+<p>Transaction ID: {{ transaction.TransactionID }}</p>
+<p>Parking Slot: {{ transaction.ParkingSlotID }}</p>
+<p>Entry Time: {{ transaction.EntryTime }}</p>
+<p>Exit Time: {{ transaction.ExitTime }}</p>
+<p>Amount Paid: ${{ transaction.PaymentAmount }}</p>
+{% endblock %}
+
+</body>
+</html>

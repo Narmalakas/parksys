@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+</head>
+<body>
+{% extends 'base.html' %}
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <h2 class="text-center">Register</h2>
+        <form method="POST">
+    {{ form.hidden_tag() }}  <!-- CSRF Token -->
+
+    <div>
+        {{ form.user_type.label }}
+        {{ form.user_type(class="form-control") }}
+    </div>
+
+    <div>
+        {{ form.first_name.label }}
+        {{ form.first_name(class="form-control") }}
+    </div>
+
+    <div>
+        {{ form.last_name.label }}
+        {{ form.last_name(class="form-control") }}
+    </div>
+
+    <div>
+        {{ form.email.label }}
+        {{ form.email(class="form-control") }}
+    </div>
+
+    <div>
+        {{ form.phone_number.label }}
+        {{ form.phone_number(class="form-control") }}
+    </div>
+
+    <div>
+        {{ form.password.label }}
+        {{ form.password(class="form-control") }}
+    </div>
+
+    <div>
+        {{ form.submit(class="btn btn-primary") }}
+    </div>
+</form>
+
+    </div>
+</div>
+{% endblock %}
+</body>
+</html>

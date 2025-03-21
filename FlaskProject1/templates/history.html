@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Parking History</title>
+</head>
+<body>
+{% extends 'base.html' %}
+{% block content %}
+<h2>Parking History</h2>
+<table class="table">
+    <thead>
+        <tr><th>Transaction ID</th><th>Slot</th><th>Entry Time</th><th>Exit Time</th><th>Amount</th></tr>
+    </thead>
+    <tbody>
+        {% for transaction in transactions %}
+        <tr>
+            <td>{{ transaction.TransactionID }}</td>
+            <td>{{ transaction.ParkingSlotID }}</td>
+            <td>{{ transaction.EntryTime }}</td>
+            <td>{{ transaction.ExitTime or 'Still Parked' }}</td>
+            <td>${{ transaction.PaymentAmount }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}
+</body>
+</html>

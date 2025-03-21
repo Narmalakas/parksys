@@ -1,0 +1,21 @@
+{% extends 'base.html' %}
+{% block content %}
+<h2>Available Parking Slots</h2>
+<table class="table">
+    <thead>
+        <tr><th>Slot Number</th><th>Status</th><th>Action</th></tr>
+    </thead>
+    <tbody>
+        {% for slot in slots %}
+        <tr>
+            <td>{{ slot.SlotNumber }}</td>
+            <td>{% if slot.IsOccupied %}Occupied{% else %}Available{% endif %}</td>
+            <td>{% if not slot.IsOccupied %}
+                <a href="/park/{{ slot.ParkingSlotID }}" class="btn btn-success">Park</a>
+                {% endif %}
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}
