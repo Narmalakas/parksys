@@ -21,3 +21,12 @@ class LoginForm(FlaskForm):
     email = StringField('Email', validators=[DataRequired(), Email()])
     password = PasswordField('Password', validators=[DataRequired()])
     submit = SubmitField('Login')
+
+class VehicleForm(FlaskForm):
+    vehicle_type = SelectField('Vehicle Type', choices=[('Car', 'Car'), ('Motorcycle', 'Motorcycle')],
+                               validators=[DataRequired()])
+    license_plate = StringField('License Plate', validators=[DataRequired()])
+    make = StringField('Make', validators=[DataRequired()])
+    model = StringField('Model', validators=[DataRequired()])
+    color = StringField('Color', validators=[DataRequired()])
+    submit = SubmitField('Register Vehicle')

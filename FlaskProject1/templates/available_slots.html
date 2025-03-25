@@ -1,21 +1,160 @@
 {% extends 'base.html' %}
+
 {% block content %}
-<h2>Available Parking Slots</h2>
-<table class="table">
+<h2>Parking Slot Availability</h2>
+
+<table class="table table-striped table-hover">
     <thead>
-        <tr><th>Slot Number</th><th>Status</th><th>Action</th></tr>
+        <tr>
+            <th>Slot No.</th>
+            <th>Status</th>
+            <th>Action</th>
+        </tr>
     </thead>
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            {% for category, message in messages %}
+              <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+              </div>
+            {% endfor %}
+          {% endif %}
+        {% endwith %}
     <tbody>
         {% for slot in slots %}
-        <tr>
-            <td>{{ slot.SlotNumber }}</td>
-            <td>{% if slot.IsOccupied %}Occupied{% else %}Available{% endif %}</td>
-            <td>{% if not slot.IsOccupied %}
-                <a href="/park/{{ slot.ParkingSlotID }}" class="btn btn-success">Park</a>
-                {% endif %}
-            </td>
-        </tr>
-        {% endfor %}
+            <tr>
+                <td>{{ slot.SlotNumber }}</td>
+                <td>
+                    <span class="badge {% if slot.IsOccupied %}bg-danger{% else %}bg-success{% endif %}">
+                        {{ "Occupied" if slot.IsOccupied else "Available" }}
+                    </span>
+                </td>
+                <td>
+                    {% if slot.IsOccupied %}
+                        {% if slot.ParkingSlotID in active_transactions %}
+                            <form action="{{ url_for('park_out', slot_id=slot.ParkingSlotID) }}" method="POST">
+                                <button type="submit" class="btn btn-danger">Park Out</button>
+                            </form>
+                        {% else %}
+                            <span class="text-muted">Occupied</span>
+                        {% endif %}
+                    {% else %}
+                        <button class="btn btn-success park-vehicle"
+                                data-bs-toggle="modal"
+                                data-bs-target="#parkModal"
+                                data-slot-id="{{ slot.ParkingSlotID }}">
+                            Park Here
+                        </button>
+                    {% endif %}
+                </td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="3" class="text-center text-warning">No available slots.</td>
+            </tr>
+            {% endfor %}
     </tbody>
 </table>
+
+<!-- Parking Modal -->
+<div class="modal fade" id="parkModal" tabindex="-1" aria-labelledby="parkModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="parkModalLabel">Confirm Parking</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form action="{{ url_for('park_vehicle') }}" method="POST">
+                    <input type="hidden" id="slotIdInput" name="slot_id">
+
+                    <div class="mb-3">
+                        <label for="vehicle_id" class="form-label">Select Your Vehicle</label>
+                        <select class="form-select" name="vehicle_id" required>
+                            {% for vehicle in vehicles %}
+                                <option value="{{ vehicle.VehicleID }}">
+                                    {{ vehicle.Make }} {{ vehicle.Model }} ({{ vehicle.LicensePlate }})
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="entryTime" class="form-label">Entry Time</label>
+                        <input type="datetime-local" class="form-control" id="entryTime" name="entry_time" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="exitTime" class="form-label">Exit Time</label>
+                        <input type="datetime-local" class="form-control" id="exitTime" name="exit_time" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="discount" class="form-label">Select Discount</label>
+                        <select class="form-select" id="discount" name="discount">
+                            <option value="0">None</option>
+                            <option value="0.10">Student</option>
+                            <option value="0.15">Faculty</option>
+                            <option value="0.20">PWD</option>
+                            <option value="0.00">Visitor</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="paymentAmount" class="form-label">Payment Amount</label>
+                        <input type="text" class="form-control" id="paymentAmount" name="payment_amount" readonly>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="paymentMethod" class="form-label">Select Payment Method</label>
+                        <select class="form-select" id="paymentMethod" name="payment_method" required>
+                            <option value="Cash">Cash</option>
+                            <option value="Credit Card">Credit Card</option>
+                            <option value="Online Payment">Online Payment</option>
+                        </select>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary">Confirm Parking</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    document.querySelectorAll(".park-vehicle").forEach(button => {
+        button.addEventListener("click", function() {
+            document.getElementById("slotIdInput").value = this.dataset.slotId;
+        });
+    });
+
+    document.getElementById("discount").addEventListener("change", function() {
+        calculatePayment();
+    });
+
+    document.getElementById("entryTime").addEventListener("change", calculatePayment);
+    document.getElementById("exitTime").addEventListener("change", calculatePayment);
+
+    function calculatePayment() {
+        const entryTime = new Date(document.getElementById("entryTime").value);
+        const exitTime = new Date(document.getElementById("exitTime").value);
+        const discount = parseFloat(document.getElementById("discount").value);
+
+        if (isNaN(entryTime.getTime()) || isNaN(exitTime.getTime()) || entryTime >= exitTime) {
+            document.getElementById("paymentAmount").value = "Invalid time range";
+            return;
+        }
+
+        const hoursParked = Math.ceil((exitTime - entryTime) / (1000 * 60 * 60));
+        const ratePerHour = 20; // Example rate
+        let totalAmount = hoursParked * ratePerHour;
+        totalAmount -= totalAmount * discount;
+
+        document.getElementById("paymentAmount").value = `₱${totalAmount.toFixed(2)}`;
+    }
+});
+</script>
+
 {% endblock %}

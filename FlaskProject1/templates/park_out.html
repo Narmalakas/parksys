@@ -1,0 +1,56 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<h2>Complete Parking & Payment</h2>
+
+{% if transaction %}
+    <table class="table table-bordered">
+        <thead>
+            <tr>
+                <th>Parking Slot</th>
+                <th>Vehicle</th>
+                <th>Entry Time</th>
+                <th>Exit Time</th>
+                <th>Total Amount</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>{{ transaction.parking_slot.SlotNumber }}</td>
+                <td>{{ transaction.vehicle.LicensePlate }} - {{ transaction.vehicle.Make }} {{ transaction.vehicle.Model }}</td>
+                <td>{{ transaction.EntryTime.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+                <td>--</td> <!-- Exit time will be recorded when parked out -->
+                <td>To be calculated</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <form action="{{ url_for('park_out', transaction_id=transaction.TransactionID) }}" method="post">
+        <div class="mb-3">
+            <label for="discount_type">Select Discount Type:</label>
+            <select name="discount_type" class="form-control" required>
+                <option value="Student">Student (20%)</option>
+                <option value="Faculty">Faculty (10%)</option>
+                <option value="PWD">PWD (30%)</option>
+                <option value="Senior">Senior (30%)</option>
+                <option value="Visitor">Visitor (No Discount)</option>
+            </select>
+        </div>
+
+        <div class="mb-3">
+            <label for="payment_method">Select Payment Method:</label>
+            <select name="payment_method" class="form-control" required>
+                <option value="GCash">GCash</option>
+                <option value="PayMaya">PayMaya</option>
+                <option value="Cash">Cash</option>
+            </select>
+        </div>
+
+        <button type="submit" class="btn btn-primary">Pay & Exit</button>
+    </form>
+
+{% else %}
+    <p class="text-danger">No active parking transaction found.</p>
+{% endif %}
+
+{% endblock %}

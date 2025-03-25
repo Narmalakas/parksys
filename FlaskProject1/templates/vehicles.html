@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <h2>Your Vehicles</h2>
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Type</th>
+                <th>License Plate</th>
+                <th>Make</th>
+                <th>Model</th>
+                <th>Color</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for vehicle in vehicles %}
+            <tr>
+                <td>{{ vehicle.VehicleType }}</td>
+                <td>{{ vehicle.LicensePlate }}</td>
+                <td>{{ vehicle.Make }}</td>
+                <td>{{ vehicle.Model }}</td>
+                <td>{{ vehicle.Color }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    <a href="{{ url_for('register_vehicle') }}" class="btn btn-primary">Add New Vehicle</a>
+</div>
+{% endblock %}
