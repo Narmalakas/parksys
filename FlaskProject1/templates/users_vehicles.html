@@ -1,0 +1,65 @@
+{% extends "admin_base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2 class="mb-3">Users' Vehicles</h2>
+
+    <!-- Navigation Buttons -->
+    <div class="d-flex mb-3">
+        <a href="{{ url_for('admin_dashboard') }}" class="btn btn-secondary me-2">Currently Parked</a>
+        <a href="{{ url_for('users_history') }}" class="btn btn-secondary me-2">View History</a>
+        <a href="{{ url_for('view_users') }}" class="btn btn-secondary me-2">View Users</a>
+        <a href="{{ url_for('logout') }}" class="btn btn-danger">Logout</a>
+    </div>
+
+    <!-- Search Form with Dropdown Filter -->
+    <form method="GET" action="{{ url_for('users_vehicles') }}" class="mb-4 row g-2">
+        <div class="col-md-3">
+            <select name="filter_by" class="form-select">
+                <option value="FirstName" {% if filter_by == "FirstName" %}selected{% endif %}>First Name</option>
+                <option value="LastName" {% if filter_by == "LastName" %}selected{% endif %}>Last Name</option>
+                <option value="VehicleType" {% if filter_by == "VehicleType" %}selected{% endif %}>Vehicle Type</option>
+                <option value="LicensePlate" {% if filter_by == "LicensePlate" %}selected{% endif %}>License Plate</option>
+                <option value="Make" {% if filter_by == "Make" %}selected{% endif %}>Make</option>
+                <option value="Model" {% if filter_by == "Model" %}selected{% endif %}>Model</option>
+                <option value="Color" {% if filter_by == "Color" %}selected{% endif %}>Color</option>
+            </select>
+        </div>
+        <div class="col-md-6">
+            <input type="text" name="search" class="form-control" placeholder="Enter search term"
+                value="{{ request.args.get('search', '') }}">
+        </div>
+        <div class="col-md-3">
+            <button type="submit" class="btn btn-primary w-100">Search</button>
+        </div>
+    </form>
+
+    <!-- Vehicles Table -->
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>First Name</th>
+                <th>Last Name</th>
+                <th>Vehicle Type</th>
+                <th>License Plate</th>
+                <th>Make</th>
+                <th>Model</th>
+                <th>Color</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for vehicle in vehicles %}
+            <tr>
+                <td>{{ vehicle.FirstName }}</td>
+                <td>{{ vehicle.LastName }}</td>
+                <td>{{ vehicle.VehicleType }}</td>
+                <td>{{ vehicle.LicensePlate }}</td>
+                <td>{{ vehicle.Make }}</td>
+                <td>{{ vehicle.Model }}</td>
+                <td>{{ vehicle.Color }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

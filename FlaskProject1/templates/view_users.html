@@ -1,0 +1,62 @@
+{% extends "admin_base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2 class="mb-3">Users List</h2>
+
+    <!-- Navigation Buttons -->
+    <div class="d-flex mb-3">
+        <a href="{{ url_for('admin_dashboard') }}" class="btn btn-secondary me-2">Currently Parked</a>
+        <a href="{{ url_for('users_history') }}" class="btn btn-secondary me-2">View History</a>
+        <a href="{{ url_for('users_vehicles') }}" class="btn btn-secondary me-2">Users' Vehicles</a>
+        <a href="{{ url_for('logout') }}" class="btn btn-danger">Logout</a>
+    </div>
+
+    <!-- Search Form with Dropdown Filter -->
+    <form method="GET" action="{{ url_for('view_users') }}" class="mb-4 row g-2">
+        <div class="col-md-3">
+            <select name="filter_by" class="form-select">
+                <option value="UserID" {% if filter_by == "UserID" %}selected{% endif %}>User ID</option>
+                <option value="UserType" {% if filter_by == "UserType" %}selected{% endif %}>User Type</option>
+                <option value="FirstName" {% if filter_by == "FirstName" %}selected{% endif %}>First Name</option>
+                <option value="LastName" {% if filter_by == "LastName" %}selected{% endif %}>Last Name</option>
+                <option value="PhoneNumber" {% if filter_by == "PhoneNumber" %}selected{% endif %}>Phone Number</option>
+                <option value="Email" {% if filter_by == "Email" %}selected{% endif %}>Email</option>
+            </select>
+        </div>
+        <div class="col-md-6">
+            <input type="text" name="search" class="form-control" placeholder="Enter search term"
+                value="{{ request.args.get('search', '') }}">
+        </div>
+        <div class="col-md-3">
+            <button type="submit" class="btn btn-primary w-100">Search</button>
+        </div>
+    </form>
+
+    <!-- Users Table -->
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>User ID</th>
+                <th>User Type</th>
+                <th>First Name</th>
+                <th>Last Name</th>
+                <th>Phone Number</th>
+                <th>Email</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for user in users %}
+            <tr>
+                <td>{{ user.UserID }}</td>
+                <td>{{ user.UserType }}</td>
+                <td>{{ user.FirstName }}</td>
+                <td>{{ user.LastName }}</td>
+                <td>{{ user.PhoneNumber if user.PhoneNumber else 'N/A' }}</td>
+                <td>{{ user.Email }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

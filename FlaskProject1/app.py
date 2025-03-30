@@ -1,6 +1,5 @@
 
 from flask_bcrypt import Bcrypt
-from flask import Flask, render_template, redirect, url_for, flash, request, session
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user, UserMixin
 from datetime import datetime
@@ -10,9 +9,9 @@ from flask import Flask, render_template, request, redirect, url_for, flash, ses
 from flask_mysqldb import MySQL
 import MySQLdb.cursors
 import datetime
-from flask_login import login_required
 from datetime import timedelta
-from flask_login import current_user
+
+from flask_login import UserMixin
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.urandom(32)
@@ -36,15 +35,14 @@ login_manager = LoginManager(app)
 login_manager.login_view = 'login'
 
 
-# Database Models
+
 class Users(db.Model, UserMixin):
-    __tablename__ = 'users'
-    UserID = db.Column(db.Integer, primary_key=True)
-    UserType = db.Column(db.Enum('Student', 'Faculty', 'Visitor'), nullable=False)
+    UserID = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    UserType = db.Column(db.Enum('Student', 'Faculty', 'Visitor', 'Admin'), nullable=False)
     FirstName = db.Column(db.String(255), nullable=False)
     LastName = db.Column(db.String(255), nullable=False)
     Email = db.Column(db.String(255), unique=True, nullable=False)
-    PhoneNumber = db.Column(db.String(20), unique=True)
+    PhoneNumber = db.Column(db.String(20), unique=True, nullable=True)
     Password = db.Column(db.String(255), nullable=False)
 
     def get_id(self):
@@ -139,12 +137,145 @@ def login():
         user = Users.query.filter_by(Email=form.email.data).first()
         if user and bcrypt.check_password_hash(user.Password, form.password.data):
             login_user(user, remember=False)
-            session['user_id'] = user.UserID  # Store user ID in session
-            return redirect(url_for('home'))
-        else:
-            flash('Email or password is incorrect', 'danger')
+            session['user_id'] = user.UserID
+
+            # Redirect Admin to an admin dashboard
+            if user.UserType == 'Admin':
+                return redirect(url_for('admin_dashboard'))
+
+            return redirect(url_for('home'))  # Redirect normal users
+
+        flash('Email or password is incorrect', 'danger')
 
     return render_template('login.html', form=form)
+
+
+@app.route('/admin_dashboard')
+@login_required
+def admin_dashboard():
+    if current_user.UserType != 'Admin':
+        flash("Unauthorized access!", "danger")
+        return redirect(url_for('home'))
+
+    # Fetch all active parking transactions
+    active_transactions = db.session.query(
+        ParkingSlots.SlotNumber,
+        Users.FirstName,
+        Users.LastName,
+        Vehicles.LicensePlate,
+        Vehicles.Make,
+        Vehicles.Model,
+        ParkingTransactions.EntryTime,
+        ParkingTransactions.ExitTime
+    ).join(ParkingTransactions, ParkingSlots.ParkingSlotID == ParkingTransactions.ParkingSlotID)\
+     .join(Users, ParkingTransactions.UserID == Users.UserID)\
+     .join(Vehicles, ParkingTransactions.VehicleID == Vehicles.VehicleID)\
+     .filter(ParkingTransactions.ExitTime == None)\
+     .all()
+
+    return render_template('admin.html', active_transactions=active_transactions)
+
+@app.route('/users_history', methods=['GET'])
+@login_required
+def users_history():
+    date_filter = request.args.get('date')
+
+    query = """
+        SELECT 
+            ps.SlotNumber AS slot, 
+            u.FirstName AS firstname, 
+            u.LastName AS lastname, 
+            v.LicensePlate AS licenseplate, 
+            v.Make AS make, 
+            v.Model AS model, 
+            pt.EntryTime AS entry_time, 
+            pt.ExitTime AS exit_time, 
+            pt.PaymentAmount AS paymentAmount 
+        FROM ParkingTransactions pt
+        JOIN Users u ON pt.UserID = u.UserID
+        JOIN Vehicles v ON pt.VehicleID = v.VehicleID
+        JOIN ParkingSlots ps ON pt.ParkingSlotID = ps.ParkingSlotID
+    """
+
+    params = {}
+    if date_filter:
+        query += " WHERE DATE(pt.EntryTime) = :date_filter ORDER BY pt.ExitTime DESC"
+        params['date_filter'] = date_filter
+    else:
+        query += " ORDER BY pt.ExitTime DESC"
+
+    history = db.session.execute(db.text(query), params).fetchall()
+
+    return render_template('users_History.html', history=history)
+
+
+@app.route('/view_users')
+@login_required
+def view_users():
+    if current_user.UserType != 'Admin':
+        flash("Unauthorized access!", "danger")
+        return redirect(url_for('home'))
+
+    search_query = request.args.get('search', '').strip()
+    filter_by = request.args.get('filter_by', 'UserID')  # Default to UserID if nothing is selected
+
+    query = Users.query
+
+    if search_query:
+        if filter_by == "UserID":
+            query = query.filter(Users.UserID.like(f"%{search_query}%"))
+        elif filter_by == "UserType":
+            query = query.filter(Users.UserType.like(f"%{search_query}%"))
+        elif filter_by == "FirstName":
+            query = query.filter(Users.FirstName.like(f"%{search_query}%"))
+        elif filter_by == "LastName":
+            query = query.filter(Users.LastName.like(f"%{search_query}%"))
+        elif filter_by == "PhoneNumber":
+            query = query.filter(Users.PhoneNumber.like(f"%{search_query}%"))
+        elif filter_by == "Email":
+            query = query.filter(Users.Email.like(f"%{search_query}%"))
+
+    users = query.all()
+
+    return render_template('view_users.html', users=users, filter_by=filter_by)
+
+
+
+@app.route('/users_vehicles')
+@login_required
+def users_vehicles():
+    if current_user.UserType != 'Admin':
+        flash("Unauthorized access!", "danger")
+        return redirect(url_for('home'))
+
+    search_query = request.args.get('search', '').strip()
+    filter_by = request.args.get('filter_by', 'FirstName')  # Default to First Name
+
+    query = Vehicles.query.join(Users, Vehicles.UserID == Users.UserID).add_columns(
+        Users.FirstName, Users.LastName, Vehicles.VehicleType, Vehicles.LicensePlate,
+        Vehicles.Make, Vehicles.Model, Vehicles.Color
+    )
+
+    if search_query:
+        if filter_by == "FirstName":
+            query = query.filter(Users.FirstName.like(f"%{search_query}%"))
+        elif filter_by == "LastName":
+            query = query.filter(Users.LastName.like(f"%{search_query}%"))
+        elif filter_by == "VehicleType":
+            query = query.filter(Vehicles.VehicleType.like(f"%{search_query}%"))
+        elif filter_by == "LicensePlate":
+            query = query.filter(Vehicles.LicensePlate.like(f"%{search_query}%"))
+        elif filter_by == "Make":
+            query = query.filter(Vehicles.Make.like(f"%{search_query}%"))
+        elif filter_by == "Model":
+            query = query.filter(Vehicles.Model.like(f"%{search_query}%"))
+        elif filter_by == "Color":
+            query = query.filter(Vehicles.Color.like(f"%{search_query}%"))
+
+    vehicles = query.all()
+
+    return render_template('users_vehicles.html', vehicles=vehicles, filter_by=filter_by)
+
 
 
 # Logout Route
@@ -296,6 +427,12 @@ def park_out(slot_id):
         flash(f'Error: {str(e)}', 'danger')
 
     return redirect(url_for('available_slots'))
+
+@app.route('/generate_admin_password')
+def generate_admin_password():
+    admin_password = "AdminPass4Park2"
+    hashed_password = bcrypt.generate_password_hash(admin_password).decode('utf-8')
+    return f"Hashed Admin Password: {hashed_password}"
 
 
 if __name__ == '__main__':
